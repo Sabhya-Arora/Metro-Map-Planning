@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     }
 
     vector<vector<int>> clauses;
-    int num_vars = N*M*K + N*M*J*K + N*M*(K-1); // K paths, J colors, K-1 auxiliary variables
+    int num_vars = N*M*K + N*M*(K-1); // K paths, J colors, K-1 auxiliary variables
 
     for (int i = 0; i < K; ++i) {
         vector<int> clause;
