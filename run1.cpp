@@ -1,10 +1,16 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <utility>   // pair
+#include <string>
+#include <cstdio>    // freopen
+#include <algorithm>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
+
 
     if (argc != 2) {
         cerr << "Usage: " << argv[0] << " <file path>" << endl;
@@ -15,16 +21,30 @@ int main(int argc, char* argv[]) {
 
     int scenario;
     cin >> scenario;
-    int N , M , K , J;
+    int N , M , K , J , P = 0;
     cin >> N >> M >> K >> J;
+    if (scenario == 2) cin >> P;
     vector<pair<int , int>> start_points(K);
     vector<pair<int , int>> end_points(K);
+    vector<pair<int , int>> popular_points(P);
     for (int i = 0; i < K; ++i) {
         cin >> start_points[i].first >> start_points[i].second >> end_points[i].first >> end_points[i].second;
     }
-
+    if (scenario == 2) {
+        for (int i = 0; i < P; ++i) {
+            cin >> popular_points[i].first >> popular_points[i].second;
+        }
+    }
+    // close input file
+    fclose(stdin);
     vector<vector<int>> clauses;
     int num_vars = N*M*K + N*M*(K-1); // K paths, J colors, K-1 auxiliary variables
+
+
+auto isEndpoint = [&](int i, int x, int y) {
+    return (x == start_points[i].first && y == start_points[i].second) ||
+           (x == end_points[i].first   && y == end_points[i].second);
+};
 
     for (int i = 0; i < K; ++i) {
         vector<int> clause;
@@ -91,7 +111,16 @@ int main(int argc, char* argv[]) {
         for (int x = 0; x< N; x++){
             for (int y = 0; y< M; y++){
                 // each cell can be occupied by at most one path at a time using k-1 auxiliary variables
-                vector<int> clause;
+                bool endpoint = false;
+                for (int i = 0; i<K; i++){
+                    if (isEndpoint(i, x, y)){
+                        endpoint = true;
+                        break;
+                    }
+                }
+                if (endpoint) continue;
+                if (K>=2){
+                    vector<int> clause;
                 clause.push_back(-(y * N + x + 1));
                 clause.push_back(N*M*K + (y * N + x + 1));
                 clauses.push_back(clause);
@@ -115,9 +144,21 @@ int main(int argc, char* argv[]) {
                 clauses.push_back(clause);
                 clause.clear();
 
+                }
+                
                 // if a cell is occupied must have exactly two adjacent cells occupied
                 for (int i =0; i<K; i++){
                     vector<pair<int , int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+                    if (((x == 0) || (x == N-1)) && ((y == 0) || (y == M-1))) {
+                        for (auto dir : directions) {
+                            if ((x + dir.second < 0) || (x + dir.second >= N) || (y + dir.first < 0) || (y + dir.first >= M)) continue;
+                            vector<int> clause;
+                            clause.push_back(-(N * M * i + y * N + x + 1));
+                            clause.push_back(N * M * i + (y + dir.first) * N + x + dir.second + 1);
+                            clauses.push_back(clause);
+                        }
+                        continue;
+                    }
                     if ((x == 0) || (x == N-1) || (y == 0) || (y == M-1)) {
                         vector<int> clause;
                         clause.push_back(-(N * M * i + y * N + x + 1));
@@ -134,6 +175,7 @@ int main(int argc, char* argv[]) {
                             }
                         }
                         clauses.push_back(clause);
+                        continue;
                     }
                 vector<int> clause;
                 clause.push_back(-(N * M * i + y * N + x + 1));
@@ -168,10 +210,6 @@ auto addClauseVec = [&](const std::vector<int>& C) {
 };
 auto Xvar = [&](int i, int x, int y) {
     return i * N * M + y * N + x + 1;
-};
-auto isEndpoint = [&](int i, int x, int y) {
-    return (x == start_points[i].first && y == start_points[i].second) ||
-           (x == end_points[i].first   && y == end_points[i].second);
 };
 
 int baseT = num_vars;                       // first new var id will be baseT + 1
@@ -296,7 +334,7 @@ for (int i = 0; i < K; ++i) {
         }
         cout << "0" << endl;
     }
-
+    fclose(stdout);
     return 0;
 }
 
