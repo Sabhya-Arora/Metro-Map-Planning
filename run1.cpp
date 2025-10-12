@@ -149,7 +149,21 @@ auto isEndpoint = [&](int i, int x, int y) {
                 // if a cell is occupied must have exactly two adjacent cells occupied
                 for (int i =0; i<K; i++){
                     vector<pair<int , int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-                    if (((x == 0) || (x == N-1)) && ((y == 0) || (y == M-1))) {
+                    int h = 0;
+                    int v = 0;
+                    for (auto dir : directions) {
+                        if ((x + dir.second >= 0) && (x + dir.second < N) && (y + dir.first >= 0) && (y + dir.first < M)) {
+                            if (dir.first == 0) h++;
+                            else v++;
+                        }
+                    }
+                    if (h+v == 1){
+                        vector<int> clause;
+                        clause.push_back(-(N * M * i + y * N + x + 1));
+                        clauses.push_back(clause);
+                        continue;
+                    }
+                    if (h+v == 2) {
                         for (auto dir : directions) {
                             if ((x + dir.second < 0) || (x + dir.second >= N) || (y + dir.first < 0) || (y + dir.first >= M)) continue;
                             vector<int> clause;
@@ -157,18 +171,19 @@ auto isEndpoint = [&](int i, int x, int y) {
                             clause.push_back(N * M * i + (y + dir.first) * N + x + dir.second + 1);
                             clauses.push_back(clause);
                         }
+                        cout << "hi" << endl;
                         continue;
                     }
-                    if ((x == 0) || (x == N-1) || (y == 0) || (y == M-1)) {
+                    if (h+v == 3) {
                         vector<int> clause;
                         clause.push_back(-(N * M * i + y * N + x + 1));
                         for (int id1 = 0; id1 < 4; id1++) {
+                            if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
+                            clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
                             for (int id2 = id1 + 1; id2 < 4; id2++) {
                                 vector<int> clause2;
                                 clause2.push_back(-(N * M * i + y * N + x + 1));
-                                if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
                                 if ((x + directions[id2].second < 0) || (x + directions[id2].second >= N) || (y + directions[id2].first < 0) || (y + directions[id2].first >= M)) continue;
-                                clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
                                 clause2.push_back((N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
                                 clause2.push_back((N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
                                 clauses.push_back(clause2);
@@ -225,9 +240,13 @@ for (int i = 0; i < K; ++i) {
     for (int y = 0; y < M; ++y) {
         for (int x = 0; x < N; ++x) {
 
+
             const int X = Xvar(i, x, y);
             const int T = Tvar(i, x, y);
-
+            if (isEndpoint(i, x, y)) {
+                addClause({-T});
+                continue;
+            }
             // Collect in-bounds neighbor literals (same path i)
             std::vector<int> H; // horizontal neighbors
             std::vector<int> V; // vertical neighbors
@@ -265,9 +284,6 @@ for (int i = 0; i < K; ++i) {
             }
 
             // (Optional) If you know endpoints must have degree 1, you can tighten by forbidding T there:
-            if (isEndpoint(i, x, y)) {
-                addClause({-T});
-            }
         }
     }
 }
