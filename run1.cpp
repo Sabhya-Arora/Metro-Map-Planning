@@ -283,7 +283,7 @@ for (int i = 0; i < K; ++i) {
             addClause({-Ti[p-1], -S[p-1][q-1], S[p][q]});
 }
 
-
+    int cur = 1;
 
     string output_path = file_path.substr(0, file_path.find_last_of('.')) + ".satinput";
     freopen(output_path.c_str(), "w", stdout);
