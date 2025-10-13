@@ -77,35 +77,38 @@ auto isEndpoint = [&](int i, int x, int y) {
         }
         clauses.push_back(clause);
         clause.clear();
+        if (scenario == 1) {
         // at most one adjacent of start point
-        for (int id1 = 0; id1 < 4; id1++) {
-            for (int id2 = id1 + 1; id2 < 4; id2++) {
-                vector<int> clause;
-                if ((sp.first + directions[id1].second < 0) || (sp.first + directions[id1].second >= N) || (sp.second + directions[id1].first < 0) || (sp.second + directions[id1].first >= M)) continue;
-                if ((sp.first + directions[id2].second < 0) || (sp.first + directions[id2].second >= N) || (sp.second + directions[id2].first < 0) || (sp.second + directions[id2].first >= M)) continue;
-                clause.push_back(-(i * N * M + (sp.second + directions[id1].first) * N + sp.first + directions[id1].second + 1));
-                clause.push_back(-(i * N * M + (sp.second + directions[id2].first) * N + sp.first + directions[id2].second + 1));
-                clauses.push_back(clause);
+            for (int id1 = 0; id1 < 4; id1++) {
+                for (int id2 = id1 + 1; id2 < 4; id2++) {
+                    vector<int> clause;
+                    if ((sp.first + directions[id1].second < 0) || (sp.first + directions[id1].second >= N) || (sp.second + directions[id1].first < 0) || (sp.second + directions[id1].first >= M)) continue;
+                    if ((sp.first + directions[id2].second < 0) || (sp.first + directions[id2].second >= N) || (sp.second + directions[id2].first < 0) || (sp.second + directions[id2].first >= M)) continue;
+                    clause.push_back(-(i * N * M + (sp.second + directions[id1].first) * N + sp.first + directions[id1].second + 1));
+                    clause.push_back(-(i * N * M + (sp.second + directions[id2].first) * N + sp.first + directions[id2].second + 1));
+                    clauses.push_back(clause);
+                }
+            }
+            for (auto dir : directions) {
+                if ((ep.first + dir.second >= 0) && (ep.first + dir.second < N) && (ep.second + dir.first >= 0) && (ep.second + dir.first < M)) {
+                    clause.push_back((i * N * M + (ep.second + dir.first) * N + ep.first + dir.second + 1));
+                }
+            }
+            clauses.push_back(clause);
+            clause.clear();
+            // at most one adjacent of end point
+            for (int id1 = 0; id1 < 4; id1++) {
+                for (int id2 = id1 + 1; id2 < 4; id2++) {
+                    vector<int> clause;
+                    if ((ep.first + directions[id1].second < 0) || (ep.first + directions[id1].second >= N) || (ep.second + directions[id1].first < 0) || (ep.second + directions[id1].first >= M)) continue;
+                    if ((ep.first + directions[id2].second < 0) || (ep.first + directions[id2].second >= N) || (ep.second + directions[id2].first < 0) || (ep.second + directions[id2].first >= M)) continue;
+                    clause.push_back(-(i * N * M + (ep.second + directions[id1].first) * N + ep.first + directions[id1].second + 1));
+                    clause.push_back(-(i * N * M + (ep.second + directions[id2].first) * N + ep.first + directions[id2].second + 1));
+                    clauses.push_back(clause);
+                }
             }
         }
-        for (auto dir : directions) {
-            if ((ep.first + dir.second >= 0) && (ep.first + dir.second < N) && (ep.second + dir.first >= 0) && (ep.second + dir.first < M)) {
-                clause.push_back((i * N * M + (ep.second + dir.first) * N + ep.first + dir.second + 1));
-            }
-        }
-        clauses.push_back(clause);
-        clause.clear();
-        // at most one adjacent of end point
-        for (int id1 = 0; id1 < 4; id1++) {
-            for (int id2 = id1 + 1; id2 < 4; id2++) {
-                vector<int> clause;
-                if ((ep.first + directions[id1].second < 0) || (ep.first + directions[id1].second >= N) || (ep.second + directions[id1].first < 0) || (ep.second + directions[id1].first >= M)) continue;
-                if ((ep.first + directions[id2].second < 0) || (ep.first + directions[id2].second >= N) || (ep.second + directions[id2].first < 0) || (ep.second + directions[id2].first >= M)) continue;
-                clause.push_back(-(i * N * M + (ep.second + directions[id1].first) * N + ep.first + directions[id1].second + 1));
-                clause.push_back(-(i * N * M + (ep.second + directions[id2].first) * N + ep.first + directions[id2].second + 1));
-                clauses.push_back(clause);
-            }
-        }
+        
     }
 
         for (int x = 0; x< N; x++){
@@ -145,75 +148,74 @@ auto isEndpoint = [&](int i, int x, int y) {
                 clause.clear();
 
                 }
-                
-                // if a cell is occupied must have exactly two adjacent cells occupied
-                for (int i =0; i<K; i++){
-                    vector<pair<int , int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-                    int h = 0;
-                    int v = 0;
-                    for (auto dir : directions) {
-                        if ((x + dir.second >= 0) && (x + dir.second < N) && (y + dir.first >= 0) && (y + dir.first < M)) {
-                            if (dir.first == 0) h++;
-                            else v++;
-                        }
-                    }
-                    if (h+v == 1){
-                        vector<int> clause;
-                        clause.push_back(-(N * M * i + y * N + x + 1));
-                        clauses.push_back(clause);
-                        continue;
-                    }
-                    if (h+v == 2) {
+                if (scenario == 1) {
+                    // if a cell is occupied must have exactly two adjacent cells occupied
+                    for (int i =0; i<K; i++){
+                        vector<pair<int , int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+                        int h = 0;
+                        int v = 0;
                         for (auto dir : directions) {
-                            if ((x + dir.second < 0) || (x + dir.second >= N) || (y + dir.first < 0) || (y + dir.first >= M)) continue;
-                            vector<int> clause;
-                            clause.push_back(-(N * M * i + y * N + x + 1));
-                            clause.push_back(N * M * i + (y + dir.first) * N + x + dir.second + 1);
-                            clauses.push_back(clause);
-                        }
-                        cout << "hi" << endl;
-                        continue;
-                    }
-                    if (h+v == 3) {
-                        vector<int> clause;
-                        clause.push_back(-(N * M * i + y * N + x + 1));
-                        for (int id1 = 0; id1 < 4; id1++) {
-                            if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
-                            clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
-                            for (int id2 = id1 + 1; id2 < 4; id2++) {
-                                vector<int> clause2;
-                                clause2.push_back(-(N * M * i + y * N + x + 1));
-                                if ((x + directions[id2].second < 0) || (x + directions[id2].second >= N) || (y + directions[id2].first < 0) || (y + directions[id2].first >= M)) continue;
-                                clause2.push_back((N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
-                                clause2.push_back((N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
-                                clauses.push_back(clause2);
+                            if ((x + dir.second >= 0) && (x + dir.second < N) && (y + dir.first >= 0) && (y + dir.first < M)) {
+                                if (dir.first == 0) h++;
+                                else v++;
                             }
                         }
-                        clauses.push_back(clause);
-                        continue;
+                        if (h+v == 1){
+                            vector<int> clause;
+                            clause.push_back(-(N * M * i + y * N + x + 1));
+                            clauses.push_back(clause);
+                            continue;
+                        }
+                        if (h+v == 2) {
+                            for (auto dir : directions) {
+                                if ((x + dir.second < 0) || (x + dir.second >= N) || (y + dir.first < 0) || (y + dir.first >= M)) continue;
+                                vector<int> clause;
+                                clause.push_back(-(N * M * i + y * N + x + 1));
+                                clause.push_back(N * M * i + (y + dir.first) * N + x + dir.second + 1);
+                                clauses.push_back(clause);
+                            }
+                            // cout << "hi" << endl;
+                            continue;
+                        }
+                        if (h+v == 3) {
+                            vector<int> clause;
+                            clause.push_back(-(N * M * i + y * N + x + 1));
+                            for (int id1 = 0; id1 < 4; id1++) {
+                                if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
+                                clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
+                                for (int id2 = id1 + 1; id2 < 4; id2++) {
+                                    vector<int> clause2;
+                                    clause2.push_back(-(N * M * i + y * N + x + 1));
+                                    if ((x + directions[id2].second < 0) || (x + directions[id2].second >= N) || (y + directions[id2].first < 0) || (y + directions[id2].first >= M)) continue;
+                                    clause2.push_back((N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
+                                    clause2.push_back((N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
+                                    clauses.push_back(clause2);
+                                }
+                            }
+                            clauses.push_back(clause);
+                            continue;
+                        }
+                    vector<int> clause;
+                    clause.push_back(-(N * M * i + y * N + x + 1));
+                    for (int id1 = 0; id1 < 4; id1++) {
+                        vector<int> clause2;
+                        vector<int> clause3;
+                        clause.push_back(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1);
+                        clause2.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
+                        for (int id2 = 0; id2 < 4; id2++) {
+                            if (id1 == id2) continue;
+                            clause2.push_back(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1);
+                            clause3.push_back(-(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
+                        }
+                        clause2.push_back(-(N * M * i + y * N + x + 1));
+                        clause3.push_back(-(N * M * i + y * N + x + 1));
+                        clauses.push_back(clause2);
+                        clauses.push_back(clause3);
                     }
-                vector<int> clause;
-                clause.push_back(-(N * M * i + y * N + x + 1));
-                for (int id1 = 0; id1 < 4; id1++) {
-                    vector<int> clause2;
-                    vector<int> clause3;
-                    clause.push_back(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1);
-                    clause2.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
-                    for (int id2 = 0; id2 < 4; id2++) {
-                        if (id1 == id2) continue;
-                        clause2.push_back(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1);
-                        clause3.push_back(-(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
+                    clauses.push_back(clause);
+                    clause.clear();
                     }
-                    clause2.push_back(-(N * M * i + y * N + x + 1));
-                    clause3.push_back(-(N * M * i + y * N + x + 1));
-                    clauses.push_back(clause2);
-                    clauses.push_back(clause3);
                 }
-                clauses.push_back(clause);
-                clause.clear();
-                }
-
-                
             }
         }
     
@@ -231,11 +233,165 @@ int baseT = num_vars;                       // first new var id will be baseT + 
 auto Tvar = [&](int i, int x, int y) {
     return baseT + (i * N * M + y * N + x + 1); // 1-based inside the block
 };
+
+if (scenario == 2) {
+// Directions: 0:Up, 1:Down, 2:Left, 3:Right
+
+// === 1. INITIALIZE VARIABLES ===
+    int base_X = 0;
+    int base_Out = baseT + K*N*M;
+    num_vars = base_Out + 4 * K * N * M;
+auto Outvar = [&](int k, int x, int y, int dir) {
+    return base_Out + k * N * M * 4 + y * N * 4 + x * 4 + dir + 1;
+};
+
+auto isStartOrEndPoint = [&](int x, int y, int& line_idx, bool& is_start) {
+    for (int i = 0; i < K; ++i) {
+        if (x == start_points[i].first && y == start_points[i].second) {
+            line_idx = i;
+            is_start = true;
+            return true;
+        }
+        if (x == end_points[i].first && y == end_points[i].second) {
+            line_idx = i;
+            is_start = false;
+            return true;
+        }
+    }
+    return false;
+};
+    // Directions: U, D, L, R
+    const vector<pair<int, int>> dirs = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+    const vector<int> opp_dir_idx = {1, 0, 3, 2};
+
+
+    // === 2. GENERATE CLAUSES ===
+
+    // --- Link Occupancy (X) and Outflow (Out) ---
+    for (int k = 0; k < K; ++k) {
+        for (int y = 0; y < M; ++y) {
+            for (int x = 0; x < N; ++x) {
+                bool is_end = (x == end_points[k].first && y == end_points[k].second);
+                vector<int> out_vars;
+                for (int d = 0; d < 4; ++d) {
+                    addClause({-Outvar(k, x, y, d), Xvar(k, x, y)}); // outflow implies occupancy
+                    out_vars.push_back(Outvar(k, x, y, d));
+                }
+                if (!is_end) {
+                    out_vars.push_back(-Xvar(k, x, y)); // occupancy implies at least one outflow
+                    addClauseVec(out_vars);
+                }
+            }
+        }
+    }
+
+    // --- Path, Flow, and Uniqueness Constraints ---
+    for (int y = 0; y < M; ++y) {
+        for (int x = 0; x < N; ++x) {
+            int endpoint_k;
+            bool is_start_flag;
+            bool is_ep = isStartOrEndPoint(x, y, endpoint_k, is_start_flag);
+
+            for (int k = 0; k < K; ++k) {
+                vector<int> inflows;
+                for(int d=0; d<4; ++d){
+                    int nx = x + dirs[d].first;
+                    int ny = y + dirs[d].second;
+                    if(nx >= 0 && nx < N && ny >= 0 && ny < M){
+                        inflows.push_back(Outvar(k, nx, ny, opp_dir_idx[d]));
+                    }
+                }
+                
+                vector<int> outflows;
+                 for(int d=0; d<4; ++d) outflows.push_back(Outvar(k, x, y, d));
+
+
+                if (is_ep && k == endpoint_k) { // START or END point
+                    if (is_start_flag) { // START
+                        for(int inflow_var : inflows) addClause({-inflow_var}); // No inflow
+                        addClauseVec(outflows); // At least one outflow
+                        for(int i=0; i<4; ++i) for(int j=i+1; j<4; ++j) addClause({-outflows[i], -outflows[j]}); // At most one outflow
+                    } else { // END
+                        for(int outflow_var : outflows) addClause({-outflow_var}); // No outflow
+                        addClauseVec(inflows); // At least one inflow
+                        for(size_t i=0; i<inflows.size(); ++i) for(size_t j=i+1; j<inflows.size(); ++j) addClause({-inflows[i], -inflows[j]}); // At most one inflow
+                    }
+                } else { // INTERMEDIATE point
+                    // Flow conservation
+                    for(int inflow_var : inflows) addClause({-inflow_var, Xvar(k,x,y)}); // inflow implies occupancy
+                    
+                    vector<int> clause_inf = {-Xvar(k,x,y)};
+                    for(int v : inflows) clause_inf.push_back(v);
+                    addClauseVec(clause_inf); // occupancy implies at least one inflow
+                    
+                    // At most one inflow/outflow
+                    for(size_t i=0; i<inflows.size(); ++i) for(size_t j=i+1; j<inflows.size(); ++j) addClause({-inflows[i], -inflows[j], -Xvar(k,x,y)});
+                    for(int i=0; i<4; ++i) for(int j=i+1; j<4; ++j) addClause({-outflows[i], -outflows[j], -Xvar(k,x,y)});
+
+                    // No U-turns
+                    if(y > 0) addClause({-Outvar(k, x, y-1, 1), -Outvar(k, x, y, 0)}); // In-Down, Out-Up
+                    if(y < M-1) addClause({-Outvar(k, x, y+1, 0), -Outvar(k, x, y, 1)}); // In-Up, Out-Down
+                    if(x > 0) addClause({-Outvar(k, x-1, y, 3), -Outvar(k, x, y, 2)}); // In-Right, Out-Left
+                    if(x < N-1) addClause({-Outvar(k, x+1, y, 2), -Outvar(k, x, y, 3)}); // In-Left, Out-Right
+                }
+            }
+        }
+    }
+
+    // // --- Turn Constraints ---
+    for (int k = 0; k < K; ++k) {
+        vector<int> path_turn_vars;
+        for (int y = 0; y < M; ++y) {
+            for (int x = 0; x < N; ++x) {
+                int T = Tvar(k, x, y);
+                path_turn_vars.push_back(T);
+
+                bool is_ep_k = (x == start_points[k].first && y == start_points[k].second) || (x == end_points[k].first && y == end_points[k].second);
+                if(is_ep_k) {
+                    addClause({-T}); // No turns at endpoints
+                    continue;
+                }
+
+                vector<int> H_in, V_in;
+                if (x > 0) H_in.push_back(Outvar(k, x - 1, y, 3));
+                if (x < N - 1) H_in.push_back(Outvar(k, x + 1, y, 2));
+                if (y > 0) V_in.push_back(Outvar(k, x, y - 1, 1));
+                if (y < M - 1) V_in.push_back(Outvar(k, x, y + 1, 0));
+
+                vector<int> H_out = {Outvar(k, x, y, 2), Outvar(k, x, y, 3)};
+                vector<int> V_out = {Outvar(k, x, y, 0), Outvar(k, x, y, 1)};
+
+                // T <=> (H_in and V_out) or (V_in and H_out)
+                for (int h_in : H_in) for (int v_out : V_out) addClause({-h_in, -v_out, T});
+                for (int v_in : V_in) for (int h_out : H_out) addClause({-v_in, -h_out, T});
+
+            }
+        }
+
+    }
+    
+    // --- Popular Cell Constraints (Scenario 2) ---
+    if (scenario == 2) {
+        for (const auto& p_point : popular_points) {
+            vector<int> popular_clause;
+            for (int k = 0; k < K; ++k) {
+                popular_clause.push_back(Xvar(k, p_point.first, p_point.second));
+            }
+            if (!popular_clause.empty()) {
+                addClauseVec(popular_clause);
+            }
+        }
+    }
+
+
+}
+
 num_vars += K * N * M;                      // reserve K*N*M turn literals
 
 // Build local definition of "turn at (i,x,y)" using a single T literal.
 // T_{i,x,y}  <->  X_{i,x,y} ∧ (L ∨ R) ∧ (U ∨ D)  (with out-of-bounds removed)
 // And the four corner implications: (¬L ∨ ¬U ∨ ¬X ∨ T), etc.
+if (scenario == 1)
 for (int i = 0; i < K; ++i) {
     for (int y = 0; y < M; ++y) {
         for (int x = 0; x < N; ++x) {
