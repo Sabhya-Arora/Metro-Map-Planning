@@ -120,7 +120,18 @@ auto isEndpoint = [&](int i, int x, int y) {
                 }
                 if (endpoint) continue;
                 if (K>=2){
-                    vector<int> clause;
+                    if (K<100){
+                        for (int i = 0; i<K; i++){
+                            for (int j = i+1; j<K; j++){
+                                vector<int> clause;
+                                clause.push_back(-(i*N*M + (y * N + x + 1)));
+                                clause.push_back(-(j*N*M + (y * N + x + 1)));
+                                clauses.push_back(clause);
+                            }
+                        }
+                    }
+                    else {
+                vector<int> clause;
                 clause.push_back(-(y * N + x + 1));
                 clause.push_back(N*M*K + (y * N + x + 1));
                 clauses.push_back(clause);
@@ -143,6 +154,8 @@ auto isEndpoint = [&](int i, int x, int y) {
                 clause.push_back(-(N*M*K + (K-2)*N*M + (y * N + x + 1)));
                 clauses.push_back(clause);
                 clause.clear();
+                    }
+                   
 
                 }
                 
