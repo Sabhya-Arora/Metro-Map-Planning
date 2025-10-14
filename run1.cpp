@@ -45,7 +45,7 @@ auto isEndpoint = [&](int i, int x, int y) {
     return (x == start_points[i].first && y == start_points[i].second) ||
            (x == end_points[i].first   && y == end_points[i].second);
 };
-
+    // bool is_break = false;
     for (int i = 0; i < K; ++i) {
         vector<int> clause;
         pair<int, int> sp = start_points[i];
@@ -108,7 +108,6 @@ auto isEndpoint = [&](int i, int x, int y) {
                 }
             }
         }
-        
     }
 
         for (int x = 0; x< N; x++){
@@ -123,7 +122,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                 }
                 if (endpoint) continue;
                 if (K>=2){
-                    if (K<100){
+                    if (K<10){
                         for (int i = 0; i<K; i++){
                             for (int j = i+1; j<K; j++){
                                 vector<int> clause;
@@ -192,7 +191,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                         }
                         if (h+v == 3) {
                             vector<int> clause;
-                            clause.push_back(-(N * M * i + y * N + x + 1));
+                            // clause.push_back(-(N * M * i + y * N + x + 1));
                             for (int id1 = 0; id1 < 4; id1++) {
                                 if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
                                 clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
@@ -221,7 +220,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                             clause3.push_back(-(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
                         }
                         clause2.push_back(-(N * M * i + y * N + x + 1));
-                        clause3.push_back(-(N * M * i + y * N + x + 1));
+                        // clause3.push_back(-(N * M * i + y * N + x + 1));
                         clauses.push_back(clause2);
                         clauses.push_back(clause3);
                     }
@@ -404,7 +403,7 @@ num_vars += K * N * M;                      // reserve K*N*M turn literals
 // Build local definition of "turn at (i,x,y)" using a single T literal.
 // T_{i,x,y}  <->  X_{i,x,y} ∧ (L ∨ R) ∧ (U ∨ D)  (with out-of-bounds removed)
 // And the four corner implications: (¬L ∨ ¬U ∨ ¬X ∨ T), etc.
-if (scenario == 1)
+if (scenario == 1 && J != 1) 
 for (int i = 0; i < K; ++i) {
     for (int y = 0; y < M; ++y) {
         for (int x = 0; x < N; ++x) {
@@ -460,6 +459,7 @@ for (int i = 0; i < K; ++i) {
 // === At-most-J turns per path using a sequential counter ====================
 // We gather the T's per path and enforce sum(T) <= J.
 // Special-cases: J >= m (no constraint), J == 0 (just set all T false).
+if (J != 1){
 
 auto newVar = [&]() -> int { return ++num_vars; };
 
@@ -505,7 +505,131 @@ for (int i = 0; i < K; ++i) {
         for (int q = 2; q <= J; ++q)
             addClause({-Ti[p-1], -S[p-1][q-1], S[p][q]});
 }
-
+}
+for (int i = 0; i<K; i++){
+    if (J == 0){
+            if ((start_points[i].first != end_points[i].first) && (start_points[i].second != end_points[i].second)){
+                // if start and end points are not aligned, path must turn at least once
+                clauses.clear();
+                clauses.push_back({1});
+                clauses.push_back({-1});
+                break;
+                // is_break = true;
+            }
+            else {
+                for (int x = 0; x < N; ++x){
+                    for (int y = 0; y < M; y++){
+                        if (start_points[i].first == end_points[i].first){
+                            if (x != start_points[i].first){
+                                clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                            }
+                            else {
+                                if ((y < min(start_points[i].second, end_points[i].second)) || (y > max(start_points[i].second, end_points[i].second))){
+                                    clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                                }
+                            }
+                        }
+                        else {
+                            if (y != start_points[i].second){
+                                clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                            }
+                            else {
+                                if ((x < min(start_points[i].first, end_points[i].first)) || (x > max(start_points[i].first, end_points[i].first))){
+                                    clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+        else if (J == 1){
+            for (int x = 0; x<N; x++){
+                for (int y = 0; y<M; y++){
+                    if ((x!= start_points[i].first)&& (x!= end_points[i].first) && (y!= start_points[i].second) && (y!= end_points[i].second)){
+                        clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                    }
+                    else if ((x == start_points[i].first) || (x == end_points[i].first)){
+                        if ((y < min(start_points[i].second, end_points[i].second)) || (y > max(start_points[i].second, end_points[i].second))){
+                            clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                        }
+                    }
+                    else if ((y == start_points[i].second) || (y == end_points[i].second)){
+                        if ((x < min(start_points[i].first, end_points[i].first)) || (x > max(start_points[i].first, end_points[i].first))){
+                            clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                        }
+                    }
+                }
+            }
+        }
+        else if (J == 2){
+            int max_clauses = 20000000;
+            bool is_break = false;
+            for (int x = 0; x<N; x++){
+                if (clauses.size() > max_clauses){
+                    break;
+                }
+                for (int y = 0; y<M; y++){
+                    if (clauses.size() > max_clauses){
+                        break;
+                    }
+                    if (x < min(start_points[i].first , end_points[i].first) && y < min(start_points[i].second , end_points[i].second)){
+                        clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                    }
+                    else if (x < min(start_points[i].first , end_points[i].first) && y > max(start_points[i].second , end_points[i].second)){
+                        clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                    }
+                    else if (x > max(start_points[i].first , end_points[i].first) && y < min(start_points[i].second , end_points[i].second)){
+                        clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                    }
+                    else if (x > max(start_points[i].first , end_points[i].first) && y > max(start_points[i].second , end_points[i].second)){
+                        clauses.push_back({-(i*N*M + (y * N + x + 1))});
+                    }
+                if (((x > min(start_points[i].first , end_points[i].first)) && (x < max(start_points[i].first , end_points[i].first))) || ((y > min(start_points[i].second , end_points[i].second)) && (y < max(start_points[i].second , end_points[i].second)))){
+    
+                for (int x1 = min(start_points[i].first , end_points[i].first)+1; x1 < max(start_points[i].first , end_points[i].first); x1++){
+                     if (clauses.size() > max_clauses){
+                        break;
+                    }
+                    for (int y1= 0; y1 <M; y1++){
+                         if (clauses.size() > max_clauses){
+                        break;
+                    }
+                      if((x1 != x1) && (y1 != y) && (y1 != start_points[i].second) && (y1 != end_points[i].second)){
+                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
+                        }
+                    }
+                }
+                for (int y1 = min(start_points[i].second , end_points[i].second)+1; y1 < max(start_points[i].second , end_points[i].second); y1++){
+                     if (clauses.size() > max_clauses){
+                        break;
+                    }
+                    for (int x1= 0; x1 <min(start_points[i].first , end_points[i].first); x1++){
+                         if (clauses.size() > max_clauses){
+                        break;
+                    }
+                      if((y1 != y) && (x1 != x)){
+                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
+                        }
+                    }
+                    for (int x1=max(start_points[i].first , end_points[i].first)+1; x1 <N; x1++){
+                         if (clauses.size() > max_clauses){
+                        break;
+                    }
+                      if((y1 != y) && (x1 != x)){
+                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+else if (J == 3){
+;
+}
+}
     int cur = 1;
 
     string output_path = file_path.substr(0, file_path.find_last_of('.')) + ".satinput";
