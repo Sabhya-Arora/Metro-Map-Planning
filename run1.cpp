@@ -16,7 +16,8 @@ int main(int argc, char* argv[]) {
         cerr << "Usage: " << argv[0] << " <file path>" << endl;
         return 1;
     }
-    string file_path = argv[1];
+    string file_base = argv[1];
+    string file_path = file_base.substr(0, file_base.find_last_of('.')) + ".city";
     freopen(file_path.c_str(), "r", stdin);
 
     int scenario;
@@ -40,11 +41,10 @@ int main(int argc, char* argv[]) {
     vector<vector<int>> clauses;
     int num_vars = N*M*K + N*M*(K-1); // K paths, J colors, K-1 auxiliary variables
 
-
-auto isEndpoint = [&](int i, int x, int y) {
-    return (x == start_points[i].first && y == start_points[i].second) ||
-           (x == end_points[i].first   && y == end_points[i].second);
-};
+    auto isEndpoint = [&](int i, int x, int y) {
+        return (x == start_points[i].first && y == start_points[i].second) ||
+            (x == end_points[i].first   && y == end_points[i].second);
+    };
     // bool is_break = false;
     for (int i = 0; i < K; ++i) {
         vector<int> clause;
@@ -122,7 +122,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                 }
                 if (endpoint) continue;
                 if (K>=2){
-                    if (K<10){
+                    if (K<30){
                         for (int i = 0; i<K; i++){
                             for (int j = i+1; j<K; j++){
                                 vector<int> clause;
@@ -191,7 +191,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                         }
                         if (h+v == 3) {
                             vector<int> clause;
-                            // clause.push_back(-(N * M * i + y * N + x + 1));
+                            clause.push_back(-(N * M * i + y * N + x + 1));
                             for (int id1 = 0; id1 < 4; id1++) {
                                 if ((x + directions[id1].second < 0) || (x + directions[id1].second >= N) || (y + directions[id1].first < 0) || (y + directions[id1].first >= M)) continue;
                                 clause.push_back(-(N * M * i + (y + directions[id1].first) * N + x + directions[id1].second + 1));
@@ -220,7 +220,7 @@ auto isEndpoint = [&](int i, int x, int y) {
                             clause3.push_back(-(N * M * i + (y + directions[id2].first) * N + x + directions[id2].second + 1));
                         }
                         clause2.push_back(-(N * M * i + y * N + x + 1));
-                        // clause3.push_back(-(N * M * i + y * N + x + 1));
+                        clause3.push_back(-(N * M * i + y * N + x + 1));
                         clauses.push_back(clause2);
                         clauses.push_back(clause3);
                     }
@@ -357,7 +357,7 @@ auto isStartOrEndPoint = [&](int x, int y, int& line_idx, bool& is_start) {
             for (int x = 0; x < N; ++x) {
                 int T = Tvar(k, x, y);
                 path_turn_vars.push_back(T);
-
+                addClause({-T, Xvar(k, x, y)});
                 bool is_ep_k = (x == start_points[k].first && y == start_points[k].second) || (x == end_points[k].first && y == end_points[k].second);
                 if(is_ep_k) {
                     addClause({-T}); // No turns at endpoints
@@ -374,9 +374,28 @@ auto isStartOrEndPoint = [&](int x, int y, int& line_idx, bool& is_start) {
                 vector<int> V_out = {Outvar(k, x, y, 0), Outvar(k, x, y, 1)};
 
                 // T <=> (H_in and V_out) or (V_in and H_out)
-                for (int h_in : H_in) for (int v_out : V_out) addClause({-h_in, -v_out, T});
-                for (int v_in : V_in) for (int h_out : H_out) addClause({-v_in, -h_out, T});
+                for (int h_in : H_in) for (int v_out : V_out) {
+                    addClause({-h_in, -v_out, T});
+                }
+                for (int v_in : V_in) for (int h_out : H_out) {
+                    addClause({-v_in, -h_out, T});
+                }
+                // Clause A: T => (Any_H_in ∨ Any_H_out)
+                vector<int> t_implies_h_flow = {-T};
+                t_implies_h_flow.insert(t_implies_h_flow.end(), H_in.begin(), H_in.end());
+                t_implies_h_flow.insert(t_implies_h_flow.end(), H_out.begin(), H_out.end());
+                if (t_implies_h_flow.size() > 1) { // Only add if horizontal flow is possible
+                    addClauseVec(t_implies_h_flow);
+                }
 
+                // Clause B: T => (Any_V_in ∨ Any_V_out)
+                vector<int> t_implies_v_flow = {-T};
+                t_implies_v_flow.insert(t_implies_v_flow.end(), V_in.begin(), V_in.end());
+                t_implies_v_flow.insert(t_implies_v_flow.end(), V_out.begin(), V_out.end());
+                if (t_implies_v_flow.size() > 1) { // Only add if vertical flow is possible
+                    addClauseVec(t_implies_v_flow);
+                }
+                
             }
         }
 
@@ -403,7 +422,7 @@ num_vars += K * N * M;                      // reserve K*N*M turn literals
 // Build local definition of "turn at (i,x,y)" using a single T literal.
 // T_{i,x,y}  <->  X_{i,x,y} ∧ (L ∨ R) ∧ (U ∨ D)  (with out-of-bounds removed)
 // And the four corner implications: (¬L ∨ ¬U ∨ ¬X ∨ T), etc.
-if (scenario == 1 && J != 1) 
+if (scenario == 1) 
 for (int i = 0; i < K; ++i) {
     for (int y = 0; y < M; ++y) {
         for (int x = 0; x < N; ++x) {
@@ -456,10 +475,7 @@ for (int i = 0; i < K; ++i) {
     }
 }
 
-// === At-most-J turns per path using a sequential counter ====================
-// We gather the T's per path and enforce sum(T) <= J.
-// Special-cases: J >= m (no constraint), J == 0 (just set all T false).
-if (J != 1){
+if (J != 1 && J!=2){
 
 auto newVar = [&]() -> int { return ++num_vars; };
 
@@ -467,9 +483,16 @@ for (int i = 0; i < K; ++i) {
     std::vector<int> Ti;
     for (int y = 0; y < M; ++y) {
         for (int x = 0; x < N; ++x) {
-            // We included all cells above; T at cells with no turn geometry are already forced false.
-            // You may skip endpoints here (they were forced false too).
+            if (J == 0){
+                continue;
+            }
+            if (J == 2){
+                if ((x == start_points[i].first )|| (y == start_points[i].second) || (x == end_points[i].first) || (y == end_points[i].second))             Ti.push_back(Tvar(i, x, y));
+                continue;
+
+            }
             Ti.push_back(Tvar(i, x, y));
+
         }
     }
 
@@ -481,7 +504,6 @@ for (int i = 0; i < K; ++i) {
         continue;
     }
 
-    // Sequential AtMost-J counter (Bailleux–Boufkhad style).
     // S[p][q] means: among the first p inputs, at least q are true.
     std::vector<std::vector<int>> S(m + 1, std::vector<int>(J + 1, 0));
     for (int p = 1; p <= m; ++p)
@@ -507,7 +529,7 @@ for (int i = 0; i < K; ++i) {
 }
 }
 for (int i = 0; i<K; i++){
-    if (J == 0){
+        if (J == 0){
             if ((start_points[i].first != end_points[i].first) && (start_points[i].second != end_points[i].second)){
                 // if start and end points are not aligned, path must turn at least once
                 clauses.clear();
@@ -554,26 +576,31 @@ for (int i = 0; i<K; i++){
                         if ((y < min(start_points[i].second, end_points[i].second)) || (y > max(start_points[i].second, end_points[i].second))){
                             clauses.push_back({-(i*N*M + (y * N + x + 1))});
                         }
+                        else if ((y > min(start_points[i].second , end_points[i].second)) && (y < max(start_points[i].second , end_points[i].second))){
+                            clauses.push_back({-Tvar(i, x, y)});
+                        }
                     }
                     else if ((y == start_points[i].second) || (y == end_points[i].second)){
                         if ((x < min(start_points[i].first, end_points[i].first)) || (x > max(start_points[i].first, end_points[i].first))){
                             clauses.push_back({-(i*N*M + (y * N + x + 1))});
                         }
+                        else if ((x > min(start_points[i].first , end_points[i].first)) && (x < max(start_points[i].first , end_points[i].first))){
+                            clauses.push_back({-Tvar(i, x, y)});}
                     }
                 }
             }
         }
         else if (J == 2){
-            int max_clauses = 20000000;
+            int max_clauses = min(num_vars*20 , 2000000);
             bool is_break = false;
             for (int x = 0; x<N; x++){
-                if (clauses.size() > max_clauses){
-                    break;
-                }
+                // if (clauses.size() > max_clauses){
+                //     break;
+                // }
                 for (int y = 0; y<M; y++){
-                    if (clauses.size() > max_clauses){
-                        break;
-                    }
+                    // if (clauses.size() > max_clauses){
+                    //     break;
+                    // }
                     if (x < min(start_points[i].first , end_points[i].first) && y < min(start_points[i].second , end_points[i].second)){
                         clauses.push_back({-(i*N*M + (y * N + x + 1))});
                     }
@@ -586,53 +613,180 @@ for (int i = 0; i<K; i++){
                     else if (x > max(start_points[i].first , end_points[i].first) && y > max(start_points[i].second , end_points[i].second)){
                         clauses.push_back({-(i*N*M + (y * N + x + 1))});
                     }
-                if (((x > min(start_points[i].first , end_points[i].first)) && (x < max(start_points[i].first , end_points[i].first))) || ((y > min(start_points[i].second , end_points[i].second)) && (y < max(start_points[i].second , end_points[i].second)))){
-    
-                for (int x1 = min(start_points[i].first , end_points[i].first)+1; x1 < max(start_points[i].first , end_points[i].first); x1++){
-                     if (clauses.size() > max_clauses){
-                        break;
+                }
+            }
+            vector<pair<int, int>> turn_points;
+            for (int x = 0; x<N; x++){
+                for (int y = 0; y<M; y++){
+                    if (x == start_points[i].first && y == start_points[i].second) continue;
+                    if (x == end_points[i].first && y == end_points[i].second) continue;
+                    if ((x != start_points[i].first) && (x != end_points[i].first) && (y != start_points[i].second) && (y != end_points[i].second)){
+                        clauses.push_back({-Tvar(i, x, y)});
                     }
-                    for (int y1= 0; y1 <M; y1++){
-                         if (clauses.size() > max_clauses){
-                        break;
-                    }
-                      if((x1 != x1) && (y1 != y) && (y1 != start_points[i].second) && (y1 != end_points[i].second)){
-                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
-                        }
+                    else{
+                        turn_points.push_back({x, y});
                     }
                 }
-                for (int y1 = min(start_points[i].second , end_points[i].second)+1; y1 < max(start_points[i].second , end_points[i].second); y1++){
-                     if (clauses.size() > max_clauses){
-                        break;
-                    }
-                    for (int x1= 0; x1 <min(start_points[i].first , end_points[i].first); x1++){
-                         if (clauses.size() > max_clauses){
-                        break;
-                    }
-                      if((y1 != y) && (x1 != x)){
-                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
+            }
+            for (int p1 = 0; p1 < turn_points.size(); p1++){
+                for (int p2 = 0; p2 < turn_points.size(); p2++){
+                    if (p1 == p2) continue;
+                    int x1 = turn_points[p1].first;
+                    int y1 = turn_points[p1].second;
+                    int x2 = turn_points[p2].first;
+                    int y2 = turn_points[p2].second;
+                    vector<int> clause;
+                if (x1 == start_points[i].first){
+                        if (y1== end_points[i].second){
+                            vector<int> clause;
+                            clause.push_back(-Tvar(i , x1 , y1));
+                            clause.push_back(-Tvar(i , x2 , y2));
+                            clauses.push_back(clause);
                         }
-                    }
-                    for (int x1=max(start_points[i].first , end_points[i].first)+1; x1 <N; x1++){
-                         if (clauses.size() > max_clauses){
-                        break;
-                    }
-                      if((y1 != y) && (x1 != x)){
-                            clauses.push_back({(i*N*M + (y * N + x + 1)), -(i*N*M + (y1 * N + x1 + 1))});
+                        else {
+                            if (y2 == y1){
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                            else{
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(-Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
                         }
-                    }
+                }
+                else if (x1 == end_points[i].first){
+                        if (y1== start_points[i].second){
+                            vector<int> clause;
+                            clause.push_back(-Tvar(i , x1 , y1));
+                            clause.push_back(-Tvar(i , x2 , y2));
+                            clauses.push_back(clause);
+                        }
+                        else {
+                            if (y2 == y1){
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                            else{
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(-Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                        }
+                }
+                else if (y1 == start_points[i].second){
+                        if (x1== end_points[i].first){
+                            vector<int> clause;
+                            clause.push_back(-Tvar(i , x1 , y1));
+                            clause.push_back(-Tvar(i , x2 , y2));
+                            clauses.push_back(clause);
+                        }
+                        else {
+                            if (x2 == x1){
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                            else{
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(-Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                        }
+                }
+                else if (y1 == end_points[i].second){
+                        if (x1== start_points[i].first){
+                            vector<int> clause;
+                            clause.push_back(-Tvar(i , x1 , y1));
+                            clause.push_back(-Tvar(i , x2 , y2));
+                            clauses.push_back(clause);
+                        }
+                        else {
+                            if (x2 == x1){
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                            else{
+                                vector<int> clause;
+                                clause.push_back(-Tvar(i , x1 , y1));
+                                clause.push_back(-Tvar(i , x2 , y2));
+                                clauses.push_back(clause);
+                            }
+                        }
                 }
             }
         }
     }
-}
-else if (J == 3){
-;
-}
+    else if (J == 3){
+        for (int i = 0; i < K; i++) {
+            int xs = start_points[i].first;
+            int ys = start_points[i].second;
+            for (int y1 = 0; y1 < M; y1++) {
+                for (int y2 = y1 + 1; y2 < M; y2++) {
+                    clauses.push_back({-Tvar(i, xs, y1), -Tvar(i, xs, y2)});
+                }
+            }
+            for (int x1 = 0; x1 < N; x1++) {
+                for (int x2 = x1 + 1; x2 < N; x2++) {
+                    clauses.push_back({-Tvar(i, x1, ys), -Tvar(i, x2, ys)});
+                }
+            }
+            int xe = end_points[i].first;
+            int ye = end_points[i].second;
+            for (int y1 = 0; y1 < M; y1++) {
+                for (int y2 = y1 + 1; y2 < M; y2++) {
+                    clauses.push_back({-Tvar(i, xe, y1), -Tvar(i, xe, y2)});
+                }
+            }
+            for (int x1 = 0; x1 < N; x1++) {
+                for (int x2 = x1 + 1; x2 < N; x2++) {
+                    clauses.push_back({-Tvar(i, x1, ye), -Tvar(i, x2, ye)});
+                }
+            }
+            for (int x = 0; x < N; x++) {
+                for (int y = 0; y < M; y++) {
+                    // Skip start or end cells
+                    if ((x == xs && y == ys) || (x == xe && y == ye)) continue;
+
+                    // Only for off-grid-line turns
+                    if ((x != xs) && (x != xe) && (y != ys) && (y != ye)) {
+                        int Txy  = Tvar(i, x, y);
+                        int A = Tvar(i, x, ys);  // same row as start
+                        int B = Tvar(i, xe, y);  // same column as end
+                        int C = Tvar(i, xs, y);  // same column as start
+                        int D = Tvar(i, x, ye);  // same row as end
+
+                        // (¬Txy ∨ A ∨ C)
+                        clauses.push_back({-Txy, A, C});
+
+                        // (¬Txy ∨ A ∨ D)
+                        clauses.push_back({-Txy, A, D});
+
+                        // // (¬Txy ∨ B ∨ C)
+                        clauses.push_back({-Txy, B, C});
+
+                        // (¬Txy ∨ B ∨ D)
+                        clauses.push_back({-Txy, B, D});
+                    }
+                }
+            }
+        }
+            
+    }
 }
     int cur = 1;
 
-    string output_path = file_path.substr(0, file_path.find_last_of('.')) + ".satinput";
+    string output_path = file_base + ".satinput";
     freopen(output_path.c_str(), "w", stdout);
     // p cnf variables clauses 
     // each clause as 1 indexed variables
@@ -646,22 +800,3 @@ else if (J == 3){
     fclose(stdout);
     return 0;
 }
-
-
-//​
-
-// (A∨B∨C∨D)∧(¬A∨B∨C∨D)∧(¬B∨A∨C∨D)∧
-// (¬C∨A∨B∨D)∧(¬D∨A∨B∨C)∧(¬A∨¬B∨¬C)∧
-// (¬A∨¬B∨¬D)∧(¬A∨¬C∨¬D)∧(¬B∨¬C∨¬D).
-// 	​
-
-
-// This 9-clause CNF is satisfiable iff exactly two of 
-// 𝐴
-// ,
-// 𝐵
-// ,
-// 𝐶
-// ,
-// 𝐷
-// A,B,C,D are true.
